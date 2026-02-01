@@ -33,5 +33,4 @@ private:
     VertexBufferObject m_vbo;
 
     // (todo) 01.5: Declare an EBO
-
 };

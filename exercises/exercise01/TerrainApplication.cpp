@@ -44,20 +44,29 @@ void TerrainApplication::Initialize()
 
     // (todo) 01.1: Create containers for the vertex position
     std::vector<Vector3> vertices;
+    std::vector<Vector2> textureCoordinates;
 
     // (todo) 01.1: Fill in vertex data
-    for (int i = 0; i < m_gridY; i++) {
-        for (int j = 0; j < m_gridX; j++) {
-            Vector3 bottomLeft = Vector3(j, i, 0);
-            Vector3 bottomRight = Vector3(j + 1, i, 0);
-            Vector3 topLeft = Vector3(j, i + 1, 0);
-            Vector3 topRight = Vector3(j + 1, i + 1, 0);
+    for (int y = 0; y < m_gridY; y++) {
+        for (int x = 0; x < m_gridX; x++) {
+            float scaledX = (float) x / m_gridX - 0.5f;
+            float scaledY = (float) y / m_gridY - 0.5f;
+            Vector3 bottomLeft = Vector3(scaledX, scaledY, 0);
+            Vector3 bottomRight = Vector3(scaledX + 1.0 / m_gridX, scaledY, 0);
+            Vector3 topLeft = Vector3(scaledX, scaledY + 1.0 / m_gridY, 0);
+            Vector3 topRight = Vector3(scaledX + 1.0 / m_gridX, scaledY + 1.0 / m_gridY, 0);
             vertices.push_back(bottomLeft);
+            textureCoordinates.push_back(Vector2(0, 0));
             vertices.push_back(bottomRight);
+            textureCoordinates.push_back(Vector2(1, 0));
             vertices.push_back(topLeft);
+            textureCoordinates.push_back(Vector2(0, 1));
             vertices.push_back(bottomRight);
+            textureCoordinates.push_back(Vector2(1, 0));
             vertices.push_back(topLeft);
+            textureCoordinates.push_back(Vector2(0, 1));
             vertices.push_back(topRight);
+            textureCoordinates.push_back(Vector2(1, 1));
         }
     }
 
@@ -66,10 +75,18 @@ void TerrainApplication::Initialize()
     m_vbo.Bind();
 
     std::span verticesSpan = std::span(vertices.data(), vertices.size());
-    m_vbo.AllocateData(verticesSpan, VertexBufferObject::StaticDraw);
+    std::span textureCoordinatesSpan = std::span(textureCoordinates.data(), textureCoordinates.size());
+
+    m_vbo.AllocateData(verticesSpan.size() * sizeof(Vector3) + textureCoordinatesSpan.size() * sizeof(Vector2), VertexBufferObject::StaticDraw);
+
+    m_vbo.UpdateData(verticesSpan, 0);
+    m_vbo.UpdateData(textureCoordinatesSpan, verticesSpan.size() * sizeof(Vector3));
 
     VertexAttribute verticesAttribute = VertexAttribute(Data::Type::Float, 3);
-    m_vao.SetAttribute(0, verticesAttribute, 0, 3*sizeof(float));
+    m_vao.SetAttribute(0, verticesAttribute, 0);
+
+    VertexAttribute textureCoordinatesAttribute = VertexAttribute(Data::Type::Float, 2);
+    m_vao.SetAttribute(1, textureCoordinatesAttribute, verticesSpan.size() * sizeof(Vector3));
 
     // (todo) 01.5: Initialize EBO
 
@@ -92,6 +109,8 @@ void TerrainApplication::Update()
 
 void TerrainApplication::Render()
 {
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     Application::Render();
 
     // Clear color and depth
