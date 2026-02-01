@@ -1,9 +1,9 @@
 #include "TerrainApplication.h"
 
 // (todo) 01.1: Include the libraries you need
-
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 // Helper structures. Declared here only for this exercise
 struct Vector2
@@ -31,7 +31,7 @@ struct Vector3
 
 
 TerrainApplication::TerrainApplication()
-    : Application(1024, 1024, "Terrain demo"), m_gridX(16), m_gridY(16), m_shaderProgram(0)
+    : Application(1024, 1024, "Terrain demo"), m_gridX(16), m_gridY(16), m_shaderProgram(0), m_vao(VertexArrayObject()), m_vbo(VertexBufferObject())
 {
 }
 
@@ -43,21 +43,43 @@ void TerrainApplication::Initialize()
     BuildShaders();
 
     // (todo) 01.1: Create containers for the vertex position
-
+    std::vector<Vector3> vertices;
 
     // (todo) 01.1: Fill in vertex data
-
+    for (int i = 0; i < m_gridY; i++) {
+        for (int j = 0; j < m_gridX; j++) {
+            Vector3 bottomLeft = Vector3(j, i, 0);
+            Vector3 bottomRight = Vector3(j + 1, i, 0);
+            Vector3 topLeft = Vector3(j, i + 1, 0);
+            Vector3 topRight = Vector3(j + 1, i + 1, 0);
+            vertices.push_back(bottomLeft);
+            vertices.push_back(bottomRight);
+            vertices.push_back(topLeft);
+            vertices.push_back(bottomRight);
+            vertices.push_back(topLeft);
+            vertices.push_back(topRight);
+        }
+    }
 
     // (todo) 01.1: Initialize VAO, and VBO
+    m_vao.Bind();
+    m_vbo.Bind();
 
+    std::span verticesSpan = std::span(vertices.data(), vertices.size());
+    m_vbo.AllocateData(verticesSpan, VertexBufferObject::StaticDraw);
+
+    VertexAttribute verticesAttribute = VertexAttribute(Data::Type::Float, 3);
+    m_vao.SetAttribute(0, verticesAttribute, 0, 3*sizeof(float));
 
     // (todo) 01.5: Initialize EBO
 
 
     // (todo) 01.1: Unbind VAO, and VBO
-
+    m_vbo.Unbind();
+    m_vao.Unbind();
 
     // (todo) 01.5: Unbind EBO
+
 
 }
 
@@ -79,7 +101,8 @@ void TerrainApplication::Render()
     glUseProgram(m_shaderProgram);
 
     // (todo) 01.1: Draw the grid
-
+    m_vao.Bind();
+    glDrawArrays(GL_TRIANGLES, 0, m_gridX * m_gridY * 6);
 }
 
 void TerrainApplication::Cleanup()
