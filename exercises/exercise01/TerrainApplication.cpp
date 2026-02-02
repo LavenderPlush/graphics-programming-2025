@@ -45,28 +45,27 @@ void TerrainApplication::Initialize()
     // (todo) 01.1: Create containers for the vertex position
     std::vector<Vector3> vertices;
     std::vector<Vector2> textureCoordinates;
+    std::vector<unsigned int> indices;
 
     // (todo) 01.1: Fill in vertex data
-    for (int y = 0; y < m_gridY; y++) {
-        for (int x = 0; x < m_gridX; x++) {
+    for (int y = 0; y < m_gridY + 1; y++) {
+        for (int x = 0; x < m_gridX + 1; x++) {
             float scaledX = (float) x / m_gridX - 0.5f;
             float scaledY = (float) y / m_gridY - 0.5f;
-            Vector3 bottomLeft = Vector3(scaledX, scaledY, 0);
-            Vector3 bottomRight = Vector3(scaledX + 1.0 / m_gridX, scaledY, 0);
-            Vector3 topLeft = Vector3(scaledX, scaledY + 1.0 / m_gridY, 0);
-            Vector3 topRight = Vector3(scaledX + 1.0 / m_gridX, scaledY + 1.0 / m_gridY, 0);
-            vertices.push_back(bottomLeft);
-            textureCoordinates.push_back(Vector2(0, 0));
-            vertices.push_back(bottomRight);
-            textureCoordinates.push_back(Vector2(1, 0));
-            vertices.push_back(topLeft);
-            textureCoordinates.push_back(Vector2(0, 1));
-            vertices.push_back(bottomRight);
-            textureCoordinates.push_back(Vector2(1, 0));
-            vertices.push_back(topLeft);
-            textureCoordinates.push_back(Vector2(0, 1));
-            vertices.push_back(topRight);
-            textureCoordinates.push_back(Vector2(1, 1));
+            Vector3 vertex = Vector3(scaledX, scaledY, 0);
+
+            vertices.push_back(vertex);
+            textureCoordinates.push_back(Vector2(x, y));
+
+            if (y < m_gridY && x < m_gridX) {
+                indices.push_back(y * (m_gridX + 1) + x);
+                indices.push_back(y * (m_gridX + 1) + x + 1);
+                indices.push_back((y + 1) * (m_gridX + 1) + x);
+
+                indices.push_back(y * (m_gridX + 1) + x + 1);
+                indices.push_back((y + 1) * (m_gridX + 1) + x);
+                indices.push_back((y + 1) * (m_gridX + 1) + x + 1);
+            }
         }
     }
 
@@ -89,14 +88,16 @@ void TerrainApplication::Initialize()
     m_vao.SetAttribute(1, textureCoordinatesAttribute, verticesSpan.size() * sizeof(Vector3));
 
     // (todo) 01.5: Initialize EBO
-
+    std::span indicesSpan = std::span(indices.data(), indices.size());
+    m_ebo.Bind();
+    m_ebo.AllocateData(indicesSpan);
 
     // (todo) 01.1: Unbind VAO, and VBO
     m_vbo.Unbind();
     m_vao.Unbind();
 
     // (todo) 01.5: Unbind EBO
-
+    m_ebo.Unbind();
 
 }
 
@@ -121,7 +122,8 @@ void TerrainApplication::Render()
 
     // (todo) 01.1: Draw the grid
     m_vao.Bind();
-    glDrawArrays(GL_TRIANGLES, 0, m_gridX * m_gridY * 6);
+    // glDrawArrays(GL_TRIANGLES, 0, m_gridX * m_gridY * 6);
+    glDrawElements(GL_TRIANGLES, 2 * 3 * m_gridX * m_gridY, GL_UNSIGNED_INT, 0);
 }
 
 void TerrainApplication::Cleanup()

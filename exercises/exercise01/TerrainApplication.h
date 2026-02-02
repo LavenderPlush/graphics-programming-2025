@@ -5,6 +5,7 @@
 // (todo) 01.1: Include the libraries you need
 #include <ituGL/geometry/VertexBufferObject.h>
 #include <ituGL/geometry/VertexArrayObject.h>
+#include <ituGL/geometry/ElementBufferObject.h>
 #include <ituGL/geometry/VertexAttribute.h>
 
 
@@ -33,4 +34,5 @@ private:
     VertexBufferObject m_vbo;
 
     // (todo) 01.5: Declare an EBO
+    ElementBufferObject m_ebo;
 };
