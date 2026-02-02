@@ -4,6 +4,7 @@
 #define STB_PERLIN_IMPLEMENTATION
 #include <stb_perlin.h>
 #include <cmath>
+#include <complex>
 #include <iostream>
 #include <vector>
 
@@ -29,7 +30,12 @@ struct Vector3
 };
 
 // (todo) 01.8: Declare an struct with the vertex format
-
+struct Vertex {
+    Vector3 position;
+    Vector2 textureCoordinate;
+    Vector3 color;
+    Vector3 normal;
+};
 
 
 TerrainApplication::TerrainApplication()
@@ -45,15 +51,14 @@ void TerrainApplication::Initialize()
     BuildShaders();
 
     // (todo) 01.1: Create containers for the vertex position
-    std::vector<Vector3> vertices;
-    std::vector<Vector2> textureCoordinates;
-    std::vector<Vector3> colors;
+    std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
 
     // (todo) 01.1: Fill in vertex data
     for (int y = 0; y < m_gridY + 1; y++) {
         for (int x = 0; x < m_gridX + 1; x++) {
+            Vertex vertex;
             float scaledX = (float) x / m_gridX - 0.5f;
             float scaledY = (float) y / m_gridY - 0.5f;
 
@@ -65,10 +70,9 @@ void TerrainApplication::Initialize()
             float magnitude = 0.2;
 
             float scaledZ = stb_perlin_fbm_noise3(x * frequency, y * frequency, z, lacunarity, gain, octaves) * magnitude;
-            Vector3 vertex = Vector3(scaledX, scaledY, scaledZ);
+            vertex.position = Vector3(scaledX, scaledY, scaledZ);
 
-            vertices.push_back(vertex);
-            textureCoordinates.push_back(Vector2(x, y));
+            vertex.textureCoordinate = Vector2(x, y);
 
             float oceanThreshold = -0.02;
             float sandThreshold = 0.02;
@@ -91,7 +95,7 @@ void TerrainApplication::Initialize()
                 chosenColor = &mountainColor;
             }
 
-            colors.push_back(*chosenColor);
+            vertex.color = *chosenColor;
 
             if (y < m_gridY && x < m_gridX) {
                 indices.push_back(y * (m_gridX + 1) + x);
@@ -102,6 +106,38 @@ void TerrainApplication::Initialize()
                 indices.push_back((y + 1) * (m_gridX + 1) + x);
                 indices.push_back((y + 1) * (m_gridX + 1) + x + 1);
             }
+
+            vertices.push_back(vertex);
+        }
+    }
+
+    for (int y = 0; y < m_gridY + 1; y++) {
+        for (int x = 0; x < m_gridX + 1; x++) {
+            int left = x - 1;
+            int right = x + 1;
+            int top = y + 1;
+            int bottom = y - 1;
+            if (left < 0) left = x;
+            if (right > m_gridX) right = x;
+            if (top > m_gridY) top = y;
+            if (bottom < 0) bottom = y;
+
+            Vector3 leftVertex = vertices[y * (m_gridX + 1) + left].position;
+            Vector3 rightVertex = vertices[y * (m_gridX + 1) + right].position;
+            Vector3 topVertex = vertices[top * (m_gridX + 1) + x].position;
+            Vector3 bottomVertex = vertices[bottom * (m_gridX + 1) + x].position;
+
+            Vector3 normal;
+            normal.x = (rightVertex.z - leftVertex.z) / (rightVertex.x - leftVertex.x);
+            normal.y = -(topVertex.z - bottomVertex.z) / (topVertex.y - bottomVertex.y);
+            normal.z = 1;
+
+            float normalLength = (std::sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z));
+            normal.x /= normalLength;
+            normal.y /= normalLength;
+            normal.z /= normalLength;
+
+            vertices[y * (m_gridX + 1) + x].normal = normal;
         }
     }
 
@@ -110,23 +146,20 @@ void TerrainApplication::Initialize()
     m_vbo.Bind();
 
     std::span verticesSpan = std::span(vertices.data(), vertices.size());
-    std::span textureCoordinatesSpan = std::span(textureCoordinates.data(), textureCoordinates.size());
-    std::span colorSpan = std::span(colors.data(), colors.size());
 
-    m_vbo.AllocateData(verticesSpan.size() * sizeof(Vector3) + textureCoordinatesSpan.size() * sizeof(Vector2) + colors.size() * sizeof(Vector3), VertexBufferObject::StaticDraw);
-
-    m_vbo.UpdateData(verticesSpan, 0);
-    m_vbo.UpdateData(textureCoordinatesSpan, verticesSpan.size() * sizeof(Vector3));
-    m_vbo.UpdateData(colorSpan, verticesSpan.size() * sizeof(Vector3) + textureCoordinatesSpan.size() * sizeof(Vector2));
+    m_vbo.AllocateData(verticesSpan, VertexBufferObject::StaticDraw);
 
     VertexAttribute verticesAttribute = VertexAttribute(Data::Type::Float, 3);
-    m_vao.SetAttribute(0, verticesAttribute, 0);
+    m_vao.SetAttribute(0, verticesAttribute, 0, sizeof(Vertex));
 
     VertexAttribute textureCoordinatesAttribute = VertexAttribute(Data::Type::Float, 2);
-    m_vao.SetAttribute(1, textureCoordinatesAttribute, verticesSpan.size() * sizeof(Vector3));
+    m_vao.SetAttribute(1, textureCoordinatesAttribute, sizeof(Vector3), sizeof(Vertex));
 
     VertexAttribute colorAttribute = VertexAttribute(Data::Type::Float, 3);
-    m_vao.SetAttribute(2, colorAttribute, verticesSpan.size() * sizeof(Vector3) + textureCoordinatesSpan.size() * sizeof(Vector2));
+    m_vao.SetAttribute(2, colorAttribute, sizeof(Vector3) + sizeof(Vector2), sizeof(Vertex));
+
+    VertexAttribute normalAttribute = VertexAttribute(Data::Type::Float, 3);
+    m_vao.SetAttribute(3, normalAttribute, sizeof(Vector3) * 2 + sizeof(Vector2), sizeof(Vertex));
 
     // (todo) 01.5: Initialize EBO
     std::span indicesSpan = std::span(indices.data(), indices.size());
