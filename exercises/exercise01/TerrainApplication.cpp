@@ -47,6 +47,7 @@ void TerrainApplication::Initialize()
     // (todo) 01.1: Create containers for the vertex position
     std::vector<Vector3> vertices;
     std::vector<Vector2> textureCoordinates;
+    std::vector<Vector3> colors;
     std::vector<unsigned int> indices;
 
 
@@ -69,6 +70,29 @@ void TerrainApplication::Initialize()
             vertices.push_back(vertex);
             textureCoordinates.push_back(Vector2(x, y));
 
+            float oceanThreshold = -0.02;
+            float sandThreshold = 0.02;
+            float grassThreshold = 0.045;
+
+            Vector3 oceanColor = Vector3(0.3, 0.45, 0.6);
+            Vector3 sandColor = Vector3(0.8, 0.7, 0.5);
+            Vector3 grassColor = Vector3(0.35, 0.55, 0.4);
+            Vector3 mountainColor = Vector3(0.5, 0.5, 0.5);
+
+            Vector3* chosenColor;
+
+            if (scaledZ <= oceanThreshold) {
+                chosenColor = &oceanColor;
+            } else if (scaledZ <= sandThreshold) {
+                chosenColor = &sandColor;
+            } else if (scaledZ <= grassThreshold) {
+                chosenColor = &grassColor;
+            } else {
+                chosenColor = &mountainColor;
+            }
+
+            colors.push_back(*chosenColor);
+
             if (y < m_gridY && x < m_gridX) {
                 indices.push_back(y * (m_gridX + 1) + x);
                 indices.push_back(y * (m_gridX + 1) + x + 1);
@@ -87,17 +111,22 @@ void TerrainApplication::Initialize()
 
     std::span verticesSpan = std::span(vertices.data(), vertices.size());
     std::span textureCoordinatesSpan = std::span(textureCoordinates.data(), textureCoordinates.size());
+    std::span colorSpan = std::span(colors.data(), colors.size());
 
-    m_vbo.AllocateData(verticesSpan.size() * sizeof(Vector3) + textureCoordinatesSpan.size() * sizeof(Vector2), VertexBufferObject::StaticDraw);
+    m_vbo.AllocateData(verticesSpan.size() * sizeof(Vector3) + textureCoordinatesSpan.size() * sizeof(Vector2) + colors.size() * sizeof(Vector3), VertexBufferObject::StaticDraw);
 
     m_vbo.UpdateData(verticesSpan, 0);
     m_vbo.UpdateData(textureCoordinatesSpan, verticesSpan.size() * sizeof(Vector3));
+    m_vbo.UpdateData(colorSpan, verticesSpan.size() * sizeof(Vector3) + textureCoordinatesSpan.size() * sizeof(Vector2));
 
     VertexAttribute verticesAttribute = VertexAttribute(Data::Type::Float, 3);
     m_vao.SetAttribute(0, verticesAttribute, 0);
 
     VertexAttribute textureCoordinatesAttribute = VertexAttribute(Data::Type::Float, 2);
     m_vao.SetAttribute(1, textureCoordinatesAttribute, verticesSpan.size() * sizeof(Vector3));
+
+    VertexAttribute colorAttribute = VertexAttribute(Data::Type::Float, 3);
+    m_vao.SetAttribute(2, colorAttribute, verticesSpan.size() * sizeof(Vector3) + textureCoordinatesSpan.size() * sizeof(Vector2));
 
     // (todo) 01.5: Initialize EBO
     std::span indicesSpan = std::span(indices.data(), indices.size());
@@ -111,7 +140,8 @@ void TerrainApplication::Initialize()
     // (todo) 01.5: Unbind EBO
     m_ebo.Unbind();
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glEnable(GL_DEPTH_TEST);
 }
 
 void TerrainApplication::Update()
