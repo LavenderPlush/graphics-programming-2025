@@ -1,6 +1,8 @@
 #include "TerrainApplication.h"
 
 // (todo) 01.1: Include the libraries you need
+#define STB_PERLIN_IMPLEMENTATION
+#include <stb_perlin.h>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -31,7 +33,7 @@ struct Vector3
 
 
 TerrainApplication::TerrainApplication()
-    : Application(1024, 1024, "Terrain demo"), m_gridX(16), m_gridY(16), m_shaderProgram(0), m_vao(VertexArrayObject()), m_vbo(VertexBufferObject())
+    : Application(1024, 1024, "Terrain demo"), m_gridX(64), m_gridY(64), m_shaderProgram(0), m_vao(VertexArrayObject()), m_vbo(VertexBufferObject())
 {
 }
 
@@ -47,12 +49,22 @@ void TerrainApplication::Initialize()
     std::vector<Vector2> textureCoordinates;
     std::vector<unsigned int> indices;
 
+
     // (todo) 01.1: Fill in vertex data
     for (int y = 0; y < m_gridY + 1; y++) {
         for (int x = 0; x < m_gridX + 1; x++) {
             float scaledX = (float) x / m_gridX - 0.5f;
             float scaledY = (float) y / m_gridY - 0.5f;
-            Vector3 vertex = Vector3(scaledX, scaledY, 0);
+
+            float frequency = 0.15;
+            float z = 0.0;
+            float lacunarity = 10.0;
+            float gain = 0.1;
+            int octaves = 1;
+            float magnitude = 0.2;
+
+            float scaledZ = stb_perlin_fbm_noise3(x * frequency, y * frequency, z, lacunarity, gain, octaves) * magnitude;
+            Vector3 vertex = Vector3(scaledX, scaledY, scaledZ);
 
             vertices.push_back(vertex);
             textureCoordinates.push_back(Vector2(x, y));
@@ -99,6 +111,7 @@ void TerrainApplication::Initialize()
     // (todo) 01.5: Unbind EBO
     m_ebo.Unbind();
 
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 void TerrainApplication::Update()
