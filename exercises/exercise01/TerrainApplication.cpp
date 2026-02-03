@@ -147,7 +147,7 @@ void TerrainApplication::Initialize()
 
     std::span verticesSpan = std::span(vertices.data(), vertices.size());
 
-    m_vbo.AllocateData(verticesSpan, VertexBufferObject::StaticDraw);
+    m_vbo.AllocateData(verticesSpan, VertexBufferObject::DynamicDraw);
 
     VertexAttribute verticesAttribute = VertexAttribute(Data::Type::Float, 3);
     m_vao.SetAttribute(0, verticesAttribute, 0, sizeof(Vertex));
@@ -184,8 +184,12 @@ void TerrainApplication::Update()
     UpdateOutputMode();
 }
 
+float sinn = 0;
+float coss = 0;
+float timer = 0;
 void TerrainApplication::Render()
 {
+    timer += 0.01;
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     Application::Render();
@@ -198,6 +202,28 @@ void TerrainApplication::Render()
 
     // (todo) 01.1: Draw the grid
     m_vao.Bind();
+
+    // Badly optimized data updates
+    sinn = std::sin(timer);
+    coss = std::cos(timer);
+    m_vbo.Bind();
+    for (int i = 0; i < (m_gridX + 1) * (m_gridY + 1); i++) {
+        float frequency = 0.15 + sinn * 0.05;
+        float z = 0.0;
+        float lacunarity = 10.0;
+        float gain = 0.1;
+        int octaves = 1;
+        float magnitude = 0.2 + coss * 0.1;
+
+        float x = i % (m_gridX + 1);
+        float y = i / (m_gridX + 1);
+
+        float newZ = stb_perlin_fbm_noise3(x * frequency, y * frequency, z, lacunarity, gain, octaves) * magnitude;
+        std::vector gg {newZ};
+        std::span newSpan = std::span(gg.data(), gg.size());
+        m_vbo.UpdateData(newSpan, i * sizeof(Vertex) + sizeof(Vector2));
+    }
+
     // glDrawArrays(GL_TRIANGLES, 0, m_gridX * m_gridY * 6);
     glDrawElements(GL_TRIANGLES, 2 * 3 * m_gridX * m_gridY, GL_UNSIGNED_INT, 0);
 }
