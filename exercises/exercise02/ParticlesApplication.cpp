@@ -13,14 +13,20 @@ struct Particle
 {
     glm::vec2 position;
     // (todo) 02.X: Add more vertex attributes
+    float size;
+    float birth;
+    float duration;
  
 };
 
 // List of attributes of the particle. Must match the structure above
-const std::array<VertexAttribute, 1> s_vertexAttributes =
+const std::array<VertexAttribute, 4> s_vertexAttributes =
 {
     VertexAttribute(Data::Type::Float, 2), // position
     // (todo) 02.X: Add more vertex attributes
+    VertexAttribute(Data::Type::Float, 1),
+    VertexAttribute(Data::Type::Float, 1),
+    VertexAttribute(Data::Type::Float, 1),
 
 };
 
@@ -42,10 +48,13 @@ void ParticlesApplication::Initialize()
     m_mousePosition = GetMainWindow().GetMousePosition(true);
 
     // (todo) 02.2: Enable the GL_PROGRAM_POINT_SIZE feature on the device
+    glEnable(GL_PROGRAM_POINT_SIZE);
+    glPointSize(2.0f);
 
 
     // (todo) 02.3: Enable the GL_BLEND feature on the device
-
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
     // We need to enable V-sync, otherwise the framerate would be too high and spawn multiple particles in one click
     GetDevice().SetVSyncEnabled(true);
@@ -64,9 +73,9 @@ void ParticlesApplication::Update()
     if (window.IsMouseButtonPressed(Window::MouseButton::Left))
     {
         // (todo) 02.X: Compute new particle attributes here
+        float particleSize = RandomRange(2.0f, 50.0f);
 
-
-        EmitParticle(mousePosition);
+        EmitParticle(mousePosition, particleSize);
     }
 
     // save the mouse position (to compare next frame and obtain velocity)
@@ -82,7 +91,8 @@ void ParticlesApplication::Render()
     m_shaderProgram.Use();
 
     // (todo) 02.4: Set CurrentTime uniform
-
+    ShaderProgram::Location currentTime = m_shaderProgram.GetUniformLocation("CurrentTime");
+    m_shaderProgram.SetUniform(currentTime, GetCurrentTime());
 
     // (todo) 02.6: Set Gravity uniform
 
@@ -142,13 +152,16 @@ void ParticlesApplication::InitializeShaders()
     }
 }
 
-void ParticlesApplication::EmitParticle(const glm::vec2& position)
+void ParticlesApplication::EmitParticle(const glm::vec2& position, const float size)
 {
     // Initialize the particle
     Particle particle;
     particle.position = position;
     // (todo) 02.X: Set the value for other attributes of the particle
+    particle.size = size;
 
+    particle.birth = GetCurrentTime();
+    particle.duration = RandomRange(2.0f, 3.0f);
 
     // Get the index in the circular buffer
     unsigned int particleIndex = m_particleCount % m_particleCapacity;
