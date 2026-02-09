@@ -3,7 +3,7 @@
 out vec4 FragColor;
 
 // (todo) 02.5: Add Color input variable here
-
+in vec4 Color;
 
 void main()
 {
@@ -11,5 +11,5 @@ void main()
 	vec2 position = gl_PointCoord * 2.0 - 1.0;
     float opacity = 1.0 - length(position);
 
-	FragColor = vec4(0.1, 0.4, 0.8, opacity);
+	FragColor = vec4(Color.rgb, opacity * Color.a);
 }

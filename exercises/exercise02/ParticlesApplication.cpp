@@ -16,18 +16,20 @@ struct Particle
     float size;
     float birth;
     float duration;
- 
+    Color color;
+    glm::vec2 velocity;
 };
 
 // List of attributes of the particle. Must match the structure above
-const std::array<VertexAttribute, 4> s_vertexAttributes =
+const std::array<VertexAttribute, 6> s_vertexAttributes =
 {
     VertexAttribute(Data::Type::Float, 2), // position
     // (todo) 02.X: Add more vertex attributes
     VertexAttribute(Data::Type::Float, 1),
     VertexAttribute(Data::Type::Float, 1),
     VertexAttribute(Data::Type::Float, 1),
-
+    VertexAttribute(Data::Type::Float, 4),
+    VertexAttribute(Data::Type::Float, 2),
 };
 
 
@@ -95,7 +97,8 @@ void ParticlesApplication::Render()
     m_shaderProgram.SetUniform(currentTime, GetCurrentTime());
 
     // (todo) 02.6: Set Gravity uniform
-
+    ShaderProgram::Location gravity = m_shaderProgram.GetUniformLocation("Gravity");
+    m_shaderProgram.SetUniform(gravity, glm::vec2(0.0, -1.0));
 
     // Bind the particle system VAO
     m_vao.Bind();
@@ -159,9 +162,12 @@ void ParticlesApplication::EmitParticle(const glm::vec2& position, const float s
     particle.position = position;
     // (todo) 02.X: Set the value for other attributes of the particle
     particle.size = size;
-
     particle.birth = GetCurrentTime();
     particle.duration = RandomRange(2.0f, 3.0f);
+    particle.color = RandomColor();
+    particle.velocity = (GetMainWindow().GetMousePosition(true) - m_mousePosition).operator*=(20);
+    particle.velocity.x += RandomRange(-0.2, 0.2);
+    particle.velocity.y += RandomRange(-0.2, 0.2);
 
     // Get the index in the circular buffer
     unsigned int particleIndex = m_particleCount % m_particleCapacity;
