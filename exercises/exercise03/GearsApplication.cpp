@@ -36,7 +36,21 @@ void GearsApplication::Update()
     const Window& window = GetMainWindow();
 
     // (todo) 03.5: Update the camera matrices
+    int windowWidth, windowHeight;
+    GetMainWindow().GetDimensions(windowWidth, windowHeight);
+    float aspectRatio = (float)windowWidth / (float)windowHeight;
 
+    glm::vec3 min = glm::vec3(-aspectRatio, -1, -10);
+    glm::vec3 max = glm::vec3(aspectRatio, 1, 10);
+
+    m_camera.SetOrthographicProjectionMatrix(min, max);
+
+    glm::vec2 mousePosition = GetMainWindow().GetMousePosition();
+
+    glm::mat4 initialPosition = glm::translate(glm::vec3(0.0f,0.0f,2.0f));
+    glm::mat4 rotatedX = glm::rotate(initialPosition, glm::radians((mousePosition.x / (windowWidth / 2.0f) - 1.0f) * 90), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 rotatedY = glm::rotate(rotatedX, glm::radians((mousePosition.y / (windowHeight / 2.0f) - 1.0f) * 90), glm::vec3(1.0f, 0.0, 0.0f));
+    m_camera.SetViewMatrix(rotatedY);
 
 }
 
@@ -49,7 +63,7 @@ void GearsApplication::Render()
     m_shaderProgram.Use();
 
     // (todo) 03.5: Set the view projection matrix from the camera. Once set, we will use it for all the objects
-
+    m_shaderProgram.SetUniform(m_viewMatrixUniform, m_camera.GetViewProjectionMatrix());
 
     // (todo) 03.1: Draw large gear at the center
     glm::mat4 centerGearMatrix(1.0f);
@@ -114,7 +128,7 @@ void GearsApplication::InitializeShaders()
 
 
     // (todo) 03.5: Find the ViewProjMatrix uniform location
-
+    m_viewMatrixUniform = m_shaderProgram.GetUniformLocation("ViewProjMatrix");
 
 }
 
