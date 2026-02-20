@@ -43,15 +43,18 @@ void GearsApplication::Update()
     glm::vec3 min = glm::vec3(-aspectRatio, -1, -10);
     glm::vec3 max = glm::vec3(aspectRatio, 1, 10);
 
-    m_camera.SetOrthographicProjectionMatrix(min, max);
+    m_camera.SetPerspectiveProjectionMatrix(3.1416 / 2.0, aspectRatio, 0.1, 10);
 
     glm::vec2 mousePosition = GetMainWindow().GetMousePosition();
 
-    glm::mat4 initialPosition = glm::translate(glm::vec3(0.0f,0.0f,2.0f));
-    glm::mat4 rotatedX = glm::rotate(initialPosition, glm::radians((mousePosition.x / (windowWidth / 2.0f) - 1.0f) * 90), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 rotatedY = glm::rotate(rotatedX, glm::radians((mousePosition.y / (windowHeight / 2.0f) - 1.0f) * 90), glm::vec3(1.0f, 0.0, 0.0f));
-    m_camera.SetViewMatrix(rotatedY);
-
+    //glm::mat4 initialPosition = glm::translate(glm::vec3(0.0f,0.0f,2.0f));
+    //glm::mat4 rotatedX = glm::rotate(initialPosition, glm::radians((mousePosition.x / (windowWidth / 2.0f) - 1.0f) * 90), glm::vec3(0.0f, 1.0f, 0.0f));
+    //glm::mat4 rotatedY = glm::rotate(rotatedX, glm::radians((mousePosition.y / (windowHeight / 2.0f) - 1.0f) * 90), glm::vec3(1.0f, 0.0, 0.0f));
+    //glm::vec4 bing = glm::vec4(rotatedY);
+    glm::vec3 initialVector = glm::vec3(0.0f,0.0f,2.0f);
+    initialVector.x = (float) (mousePosition.x - windowWidth / 2.0) * -0.01f;
+    initialVector.y = (float) (mousePosition.y - windowHeight / 2.0) * 0.01f;
+    m_camera.SetViewMatrix(glm::normalize(initialVector) * 2.0f, glm::vec3(0.0f));
 }
 
 void GearsApplication::Render()
