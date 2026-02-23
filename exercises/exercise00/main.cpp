@@ -1,13 +1,21 @@
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <ituGL/core/DeviceGL.h>
 #include <ituGL/application/Window.h>
 #include <iostream>
+#include <vector>
+#include <ituGL/geometry/VertexBufferObject.h>
+#include <ituGL/geometry/VertexArrayObject.h>
+#include <ituGL/geometry/VertexAttribute.h>
+#include <ituGL/geometry/ElementBufferObject.h>
 
 int buildShaderProgram();
 void processInput(GLFWwindow* window);
+std::tuple<std::vector<float>, std::vector<unsigned int>> generateCircleVertices();
 
 // settings
 const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_HEIGHT = 800;
 
 int main()
 {
@@ -33,6 +41,7 @@ int main()
         return -1;
     }
 
+
     // build and compile our shader program
     // ------------------------------------
     int shaderProgram = buildShaderProgram();
@@ -40,33 +49,54 @@ int main()
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f, // left  
-         0.5f, -0.5f, 0.0f, // right 
-         0.0f,  0.5f, 0.0f  // top   
+        -0.5f, 0.5f, 0.0f, // left
+         0.5f, 0.5f, 0.0f, // right
+         0.5f,  -0.5f, 0.0f,  // top
+        -0.5f, -0.5f, 0.0f,
     };
 
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    unsigned int indices[] = {
+        0, 1, 2,
+        2, 0, 3
+    };
+
+    std::tuple circleData = generateCircleVertices();
+    std::vector<float> circleVertices = std::get<0>(circleData);
+    std::vector<unsigned int> circleIndices = std::get<1>(circleData);
+
+    VertexBufferObject vbo = VertexBufferObject();
+    VertexArrayObject vao = VertexArrayObject();
+    ElementBufferObject ebo = ElementBufferObject();
+
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
+    vao.Bind();
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    ebo.Bind();
+    std::span elementSpan = std::span(circleIndices.data(), circleIndices.size());
+    ebo.AllocateData(elementSpan, BufferObject::DynamicDraw);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    vbo.Bind();
+    std::span vertexSpan = std::span(circleVertices.data(), circleVertices.size());
+    vbo.AllocateData(vertexSpan, BufferObject::DynamicDraw);
+
+    VertexAttribute position = VertexAttribute(Data::Type::Float, 3);
+    vao.SetAttribute(0, position, 0,3 * sizeof(float));
+
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    vbo.Unbind();
 
     // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    glBindVertexArray(0);
+    vao.Unbind();
+
+    ebo.Unbind();
 
 
     // uncomment this call to draw in wireframe polygons.
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    float time = 0;
 
     // render loop
     // -----------
@@ -78,13 +108,36 @@ int main()
 
         // render
         // ------
-        deviceGL.Clear(0.2f, 0.3f, 0.3f, 1.0f);
+        deviceGL.Clear(0.8f, 0.3f, 0.3f, 1.0f);
+
+        // Update frame timer and move triangle
+        // ------
+        time += 1.0f;
+        float angle = time * 0.01f;
+        std::vector<float> rotatedVertices;
+        for (int i = 0; i < vertexSpan.size(); i += 3) {
+            float x = circleVertices[i];
+            float y = circleVertices[i + 1];
+            float z = circleVertices[i + 2];
+            float rotatedX = std::sin(angle) * x - std::cos(angle) * y;
+            float rotatedY = std::cos(angle) * x + std::sin(angle) * y;
+            float rotatedZ = z;
+
+            rotatedVertices.push_back(rotatedX);
+            rotatedVertices.push_back(rotatedY);
+            rotatedVertices.push_back(rotatedZ);
+        }
+
+        vbo.Bind();
+        vbo.UpdateData(std::span(rotatedVertices), 0);
+        vbo.Unbind();
 
         // draw our first triangle
         glUseProgram(shaderProgram);
-        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        // glBindVertexArray(0); // no need to unbind it every time 
+        vao.Bind(); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+
+        glDrawElements(GL_TRIANGLES, elementSpan.size(), GL_UNSIGNED_INT, 0);
+        // glBindVertexArray(0); // no need to unbind it every time
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -94,8 +147,6 @@ int main()
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
     glDeleteProgram(shaderProgram);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
@@ -112,9 +163,39 @@ void processInput(GLFWwindow* window)
         glfwSetWindowShouldClose(window, true);
 }
 
+std::tuple<std::vector<float>, std::vector<unsigned int>> generateCircleVertices() {
+    std::vector<float> circleVertices;
+    std::vector<unsigned int> circleIndices;
+    circleVertices.push_back(0.0f);
+    circleVertices.push_back(0.0f);
+    circleVertices.push_back(0.0f);
+
+    const int numVertices = 9;
+
+    for (int i = 0; i < numVertices; i++) {
+        float angle = M_PI * 2.0f * ((float)i / numVertices);
+        float x = std::sin(angle) * 0.5f;
+        float y = std::cos(angle) * 0.5f;
+        float z = 0.0f;
+        circleVertices.push_back(x);
+        circleVertices.push_back(y);
+        circleVertices.push_back(z);
+
+        circleIndices.push_back(0);
+        circleIndices.push_back(i + 1);
+        circleIndices.push_back((i + 2) % (numVertices + 1));
+    }
+
+    circleIndices.push_back(0);
+    circleIndices.push_back(1);
+    circleIndices.push_back(numVertices);
+
+    return std::tuple(circleVertices, circleIndices);
+}
+
 // build the shader program
 // ------------------------
-int buildShaderProgram() 
+int buildShaderProgram()
 {
     const char* vertexShaderSource = "#version 330 core\n"
         "layout (location = 0) in vec3 aPos;\n"
@@ -126,7 +207,7 @@ int buildShaderProgram()
         "out vec4 FragColor;\n"
         "void main()\n"
         "{\n"
-        "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+        "   FragColor = vec4(0.3f, 0.4f, 0.8f, 1.0f);\n"
         "}\n\0";
 
     // vertex shader
