@@ -74,6 +74,8 @@ void ViewerApplication::InitializeModel()
     filteredUniforms.insert("WorldMatrix");
     filteredUniforms.insert("ViewProjMatrix");
     filteredUniforms.insert("AmbientColor");
+    filteredUniforms.insert("LightColor");
+    filteredUniforms.insert("LightPosition");
 
     // Create reference material
     std::shared_ptr<Material> material = std::make_shared<Material>(shaderProgram, filteredUniforms);
@@ -83,13 +85,19 @@ void ViewerApplication::InitializeModel()
     ShaderProgram::Location worldMatrixLocation = shaderProgram->GetUniformLocation("WorldMatrix");
     ShaderProgram::Location viewProjMatrixLocation = shaderProgram->GetUniformLocation("ViewProjMatrix");
     ShaderProgram::Location ambientColorLocation = shaderProgram->GetUniformLocation("AmbientColor");
+    ShaderProgram::Location lightColorLocation = shaderProgram->GetUniformLocation("LightColor");
+    ShaderProgram::Location lightPositionLocation = shaderProgram->GetUniformLocation("LightPosition");
     ShaderProgram::Location ambientReflectionLocation = shaderProgram->GetUniformLocation("AmbientReflection");
+    ShaderProgram::Location diffuseReflectionLocation = shaderProgram->GetUniformLocation("DiffuseReflection");
     material->SetShaderSetupFunction([=](ShaderProgram& shaderProgram){
         shaderProgram.SetUniform(worldMatrixLocation, glm::scale(glm::vec3(0.1f)));
         shaderProgram.SetUniform(viewProjMatrixLocation, m_camera.GetViewProjectionMatrix());
         // (todo) 05.X: Set camera and light uniforms
         shaderProgram.SetUniform(ambientColorLocation, m_ambientColor);
+        shaderProgram.SetUniform(lightColorLocation, m_lightColor * m_lightIntensity);
+        shaderProgram.SetUniform(lightPositionLocation, m_lightPosition);
         shaderProgram.SetUniform(ambientReflectionLocation, 1.0f);
+        shaderProgram.SetUniform(diffuseReflectionLocation, 1.0f);
     });
 
     // Configure loader
@@ -127,7 +135,10 @@ void ViewerApplication::InitializeCamera()
 void ViewerApplication::InitializeLights()
 {
     // (todo) 05.X: Initialize light variables
-    m_ambientColor = glm::vec3(0.25f, 0.25f, 0.25f);
+    m_ambientColor = glm::vec3(0.25f);
+    m_lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    m_lightPosition = glm::vec3(0.0f, 0.0f, 5.0f);
+    m_lightIntensity = 1.0f;
 }
 
 void ViewerApplication::RenderGUI()
