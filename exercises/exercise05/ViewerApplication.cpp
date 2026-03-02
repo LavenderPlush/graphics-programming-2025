@@ -64,8 +64,8 @@ void ViewerApplication::Cleanup()
 void ViewerApplication::InitializeModel()
 {
     // Load and build shader
-    Shader vertexShader = ShaderLoader::Load(Shader::VertexShader, "shaders/unlit.vert");
-    Shader fragmentShader = ShaderLoader::Load(Shader::FragmentShader, "shaders/unlit.frag");
+    Shader vertexShader = ShaderLoader::Load(Shader::VertexShader, "shaders/blinn-phong.vert");
+    Shader fragmentShader = ShaderLoader::Load(Shader::FragmentShader, "shaders/blinn-phong.frag");
     std::shared_ptr<ShaderProgram> shaderProgram = std::make_shared<ShaderProgram>();
     shaderProgram->Build(vertexShader, fragmentShader);
 
@@ -73,6 +73,7 @@ void ViewerApplication::InitializeModel()
     ShaderUniformCollection::NameSet filteredUniforms;
     filteredUniforms.insert("WorldMatrix");
     filteredUniforms.insert("ViewProjMatrix");
+    filteredUniforms.insert("AmbientColor");
 
     // Create reference material
     std::shared_ptr<Material> material = std::make_shared<Material>(shaderProgram, filteredUniforms);
@@ -81,11 +82,14 @@ void ViewerApplication::InitializeModel()
     // Setup function
     ShaderProgram::Location worldMatrixLocation = shaderProgram->GetUniformLocation("WorldMatrix");
     ShaderProgram::Location viewProjMatrixLocation = shaderProgram->GetUniformLocation("ViewProjMatrix");
+    ShaderProgram::Location ambientColorLocation = shaderProgram->GetUniformLocation("AmbientColor");
+    ShaderProgram::Location ambientReflectionLocation = shaderProgram->GetUniformLocation("AmbientReflection");
     material->SetShaderSetupFunction([=](ShaderProgram& shaderProgram){
         shaderProgram.SetUniform(worldMatrixLocation, glm::scale(glm::vec3(0.1f)));
         shaderProgram.SetUniform(viewProjMatrixLocation, m_camera.GetViewProjectionMatrix());
         // (todo) 05.X: Set camera and light uniforms
-
+        shaderProgram.SetUniform(ambientColorLocation, m_ambientColor);
+        shaderProgram.SetUniform(ambientReflectionLocation, 1.0f);
     });
 
     // Configure loader
@@ -123,7 +127,7 @@ void ViewerApplication::InitializeCamera()
 void ViewerApplication::InitializeLights()
 {
     // (todo) 05.X: Initialize light variables
-
+    m_ambientColor = glm::vec3(0.25f, 0.25f, 0.25f);
 }
 
 void ViewerApplication::RenderGUI()
