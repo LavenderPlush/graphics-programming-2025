@@ -81,18 +81,16 @@ void ViewerApplication::InitializeModel()
     // Setup function
     ShaderProgram::Location worldMatrixLocation = shaderProgram->GetUniformLocation("WorldMatrix");
     ShaderProgram::Location viewProjMatrixLocation = shaderProgram->GetUniformLocation("ViewProjMatrix");
-    material->SetShaderSetupFunction([=](ShaderProgram& shaderProgram)
-        {
-            shaderProgram.SetUniform(worldMatrixLocation, glm::scale(glm::vec3(0.1f)));
-            shaderProgram.SetUniform(viewProjMatrixLocation, m_camera.GetViewProjectionMatrix());
+    material->SetShaderSetupFunction([=](ShaderProgram& shaderProgram){
+        shaderProgram.SetUniform(worldMatrixLocation, glm::scale(glm::vec3(0.1f)));
+        shaderProgram.SetUniform(viewProjMatrixLocation, m_camera.GetViewProjectionMatrix());
+        // (todo) 05.X: Set camera and light uniforms
 
-            // (todo) 05.X: Set camera and light uniforms
-
-
-        });
+    });
 
     // Configure loader
     ModelLoader loader(material);
+    loader.SetCreateMaterials(true);
     loader.SetMaterialAttribute(VertexAttribute::Semantic::Position, "VertexPosition");
     loader.SetMaterialAttribute(VertexAttribute::Semantic::Normal, "VertexNormal");
     loader.SetMaterialAttribute(VertexAttribute::Semantic::TexCoord0, "VertexTexCoord");
@@ -101,7 +99,15 @@ void ViewerApplication::InitializeModel()
     m_model = loader.Load("models/mill/Mill.obj");
 
     // (todo) 05.1: Load and set textures
+    m_model.GetMaterial(0).SetUniformValue("Color", glm::vec4(1.0));
+    m_model.GetMaterial(1).SetUniformValue("Color", glm::vec4(1.0));
+    m_model.GetMaterial(2).SetUniformValue("Color", glm::vec4(1.0));
 
+    Texture2DLoader texture2DLoader(TextureObject::Format::FormatRGBA, TextureObject::InternalFormat::InternalFormatRGBA8);
+    texture2DLoader.SetFlipVertical(true);
+    m_model.GetMaterial(0).SetUniformValue("ColorTexture", texture2DLoader.LoadShared("models/mill/Ground_shadow.jpg"));
+    m_model.GetMaterial(1).SetUniformValue("ColorTexture", texture2DLoader.LoadShared("models/mill/Ground_color.jpg"));
+    m_model.GetMaterial(2).SetUniformValue("ColorTexture", texture2DLoader.LoadShared("models/mill/MillCat_color.jpg"));
 }
 
 void ViewerApplication::InitializeCamera()
