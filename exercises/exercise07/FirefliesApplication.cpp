@@ -9,6 +9,7 @@
 #include <ituGL/renderer/DeferredRenderPass.h>
 #include <glm/gtx/transform.hpp>
 #include <imgui.h>
+#include <iostream>
 
 FirefliesApplication::FirefliesApplication()
     : Application(1024, 1024, "Fireflies demo")
@@ -338,6 +339,8 @@ void FirefliesApplication::RenderGUI()
     ImGui::ColorEdit3("Light color", &m_lightColor[0]);
     ImGui::DragFloat("Light intensity", &m_lightIntensity, 0.05f, 0.0f, 100.0f);
     ImGui::Checkbox("Use random color", &m_useRandomColor);
+    ImGui::DragFloat("Light Attenuation X", &m_lightAttenuation.x, 0.05f, 0.0f, 100.0f);
+    ImGui::DragFloat("Light Attenuation Y", &m_lightAttenuation.y, 0.05f, 0.0f, 100.0f);
 
     m_imGui.EndFrame();
 }
@@ -386,6 +389,8 @@ void FirefliesApplication::AddFirefly(glm::vec2 position2D)
     glm::vec3 position3D(position2D.x * scale, RandomRange(0.8f, 1.0f), position2D.y * -scale);
 
     PointLight& pointLight = firefly.pointLight;
+    pointLight.SetDistanceAttenuation(m_lightAttenuation);
+    std::cout << m_lightAttenuation.x << " " << m_lightAttenuation.y << std::endl;
     pointLight.SetPosition(position3D);
     pointLight.SetColor(m_useRandomColor ? glm::vec3(RandomColor()) : m_lightColor);
     pointLight.SetIntensity(m_lightIntensity);

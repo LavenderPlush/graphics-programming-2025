@@ -84,6 +84,8 @@ private:
     float m_lightIntensity;
     bool m_useRandomColor;
 
+    glm::vec2 m_lightAttenuation;
+
     // Renderer
     Renderer m_renderer;
 };
