@@ -13,7 +13,7 @@
 
 FirefliesApplication::FirefliesApplication()
     : Application(1024, 1024, "Fireflies demo")
-    , m_renderMode(RenderMode::Forward)
+    , m_renderMode(RenderMode::Deferred)
     , m_renderer(GetDevice())
     , m_mouseClicked(false)
     , m_ambientColor(0.0f)
@@ -390,7 +390,6 @@ void FirefliesApplication::AddFirefly(glm::vec2 position2D)
 
     PointLight& pointLight = firefly.pointLight;
     pointLight.SetDistanceAttenuation(m_lightAttenuation);
-    std::cout << m_lightAttenuation.x << " " << m_lightAttenuation.y << std::endl;
     pointLight.SetPosition(position3D);
     pointLight.SetColor(m_useRandomColor ? glm::vec3(RandomColor()) : m_lightColor);
     pointLight.SetIntensity(m_lightIntensity);

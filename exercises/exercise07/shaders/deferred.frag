@@ -14,5 +14,6 @@ uniform mat4 InvProjMatrix;
 
 void main()
 {
-	FragColor = vec4(0);
+    vec2 normal = texture(NormalTexture, TexCoord).rg;
+	FragColor = vec4(GetImplicitNormal(normal), 0.0f);
 }
