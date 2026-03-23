@@ -47,7 +47,8 @@ vec3 FresnelSchlick(vec3 f0, vec3 viewDir, vec3 halfDir)
 float DistributionGGX(vec3 normal, vec3 halfDir, float roughness)
 {
 	// (todo) 08.5: Implement the equation
-	return 0.0f;
+    float distribution = pow(roughness, 2.0) / (Pi * pow(pow(ClampedDot(normal, halfDir), 2.0) * (pow(roughness, 2.0) - 1.0) + 1.0, 2.0));
+	return distribution;
 }
 
 // Geometry term in one direction, for GGX equation
@@ -115,25 +116,29 @@ vec3 ComputeDiffuseLighting(SurfaceData data, vec3 lightDir)
 {
 	// (todo) 08.4: Implement the lambertian equation for diffuse
 
-	float incidence = ClampedDot(data.normal, lightDir);
-	return GetAlbedo(data) * incidence;
+	return GetAlbedo(data) / Pi;
 }
 
 vec3 ComputeSpecularLighting(SurfaceData data, vec3 lightDir, vec3 viewDir)
 {
 	// (todo) 08.5: Implement the Cook-Torrance equation using the D (distribution) and G (geometry) terms
-	return vec3(0.0f);
+    // lightDir should be halfDir but where to get this?
+    float upper = DistributionGGX(data.normal, GetHalfVector(lightDir, viewDir), data.roughness) * GeometrySmith(data.normal, lightDir, viewDir, data.roughness);
+    float bottom = 4 * ClampedDot(data.normal, lightDir) * ClampedDot(data.normal, viewDir) + 0.00001f;
+	return vec3(upper) / bottom;
 }
 
 vec3 CombineLighting(vec3 diffuse, vec3 specular, SurfaceData data, vec3 lightDir, vec3 viewDir)
 {
 	// (todo) 08.3: Compute the Fresnel term between the half direction and the view direction
-
+    vec3 f0 = GetReflectance(data);
+    vec3 fresnel = f0 + (1 - f0) * pow(1 - dot(viewDir, data.normal), 5.0);
 
 	// (todo) 08.3: Linearly interpolate between the diffuse and specular term, using the fresnel value
-
+    vec3 diffuseSpecular = mix(diffuse, specular, fresnel);
 
 	// (todo) 08.4: Move the incidence factor to affect the combined light value
+    float incidence = ClampedDot(data.normal, lightDir);
 
-	return diffuse + specular;
+	return diffuseSpecular * incidence;
 }
