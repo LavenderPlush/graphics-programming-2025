@@ -1,7 +1,9 @@
 #include <ituGL/asset/TextureCubemapLoader.h>
 
 #include <cassert>
+#include <vector>
 #include <stb_image.h>
+#include <cmath>
 
 TextureCubemapLoader::TextureCubemapLoader()
     : m_flipVertical(false)
