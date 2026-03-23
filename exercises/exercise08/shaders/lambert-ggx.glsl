@@ -47,14 +47,14 @@ vec3 FresnelSchlick(vec3 f0, vec3 viewDir, vec3 halfDir)
 float DistributionGGX(vec3 normal, vec3 halfDir, float roughness)
 {
 	// (todo) 08.5: Implement the equation
-	return vec3(0.0f);
+	return 0.0f;
 }
 
 // Geometry term in one direction, for GGX equation
 float GeometrySchlickGGX(float cosAngle, float roughness)
 {
 	// (todo) 08.6: Implement the equation
-	return vec3(1.0f);
+	return 1.0f;
 }
 
 // Geometry term in both directions, following Smith simplification, that divides it in the product of both directions
@@ -84,31 +84,31 @@ vec3 SampleEnvironment(vec3 direction, float lodLevel)
 vec3 ComputeDiffuseIndirectLighting(SurfaceData data)
 {
 	// (todo) 08.1: Sample the environment map at its max LOD level and multiply with the albedo
-	return GetAlbedo(data) * 0.25f;
+	return GetAlbedo(data) * SampleEnvironment(data.normal, 1);
 }
 
 vec3 ComputeSpecularIndirectLighting(SurfaceData data, vec3 viewDir)
 {
 	// (todo) 08.2: Compute the reflection vector with the viewDir and the normal
-
+	vec3 reflectionVector = reflect(-viewDir, data.normal);
 
 	// (todo) 08.2: Sample the environment map using the reflection vector, at a specific LOD level
-
+	vec3 environmentSample = SampleEnvironment(reflectionVector, pow(data.roughness, 0.25f));
 
 	// (todo) 08.6: Add a geometry term to the indirect specular
 
-
-	return vec3(0.0f);
+	return environmentSample;
 }
 
 vec3 CombineIndirectLighting(vec3 diffuse, vec3 specular, SurfaceData data, vec3 viewDir)
 {
 	// (todo) 08.3: Compute the Fresnel term between the normal and the view direction
+	vec3 f0 = GetReflectance(data);
 
+	vec3 fresnel = f0 + (1 - f0) * pow(1 - dot(viewDir, data.normal), 5.0);
 
 	// (todo) 08.3: Linearly interpolate between the diffuse and specular term, using the fresnel value
-
-	return (diffuse + specular) * data.ambientOcclusion;
+	return mix(diffuse, specular, fresnel) * data.ambientOcclusion;
 }
 
 vec3 ComputeDiffuseLighting(SurfaceData data, vec3 lightDir)
