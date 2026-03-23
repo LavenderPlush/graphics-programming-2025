@@ -55,7 +55,9 @@ float DistributionGGX(vec3 normal, vec3 halfDir, float roughness)
 float GeometrySchlickGGX(float cosAngle, float roughness)
 {
 	// (todo) 08.6: Implement the equation
-	return 1.0f;
+    float upper = 2.0f * cosAngle;
+    float bottom = cosAngle + sqrt(pow(roughness, 2.0) + (1.0f - pow(roughness, 2.0))*(pow(cosAngle, 2.0f)));
+	return upper / bottom;
 }
 
 // Geometry term in both directions, following Smith simplification, that divides it in the product of both directions
@@ -98,7 +100,7 @@ vec3 ComputeSpecularIndirectLighting(SurfaceData data, vec3 viewDir)
 
 	// (todo) 08.6: Add a geometry term to the indirect specular
 
-	return environmentSample;
+	return environmentSample * GeometrySmith(data.normal, reflectionVector, viewDir, data.roughness);
 }
 
 vec3 CombineIndirectLighting(vec3 diffuse, vec3 specular, SurfaceData data, vec3 viewDir)
