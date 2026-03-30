@@ -1,5 +1,6 @@
 #include <ituGL/asset/Texture2DLoader.h>
 
+#include <cmath>
 #include <cassert>
 
 Texture2DLoader::Texture2DLoader()
@@ -40,7 +41,7 @@ Texture2DObject Texture2DLoader::Load(const char* path)
 
             // Adjust mip levels
             texture2D.SetParameter(TextureObject::ParameterFloat::MinLod, 0.0f);
-            float maxLod = 1.0f + std::floorf(std::log2f(static_cast<float>(std::max(width, height))));
+            float maxLod = 1.0f + std::floor(std::log2f(static_cast<float>(std::max(width, height))));
             texture2D.SetParameter(TextureObject::ParameterFloat::MaxLod, maxLod);
         }
 
