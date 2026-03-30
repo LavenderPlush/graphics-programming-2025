@@ -391,6 +391,23 @@ void PostFXSceneViewerApplication::RenderGUI()
             {
                 m_composeMaterial->SetUniformValue("Exposure", m_exposure);
             }
+            if (ImGui::DragFloat("Contrast", &m_contrast, 0.01f, 0.5f, 1.5f))
+            {
+                m_composeMaterial->SetUniformValue("Contrast", m_contrast);
+            }
+            if (ImGui::DragFloat("Hue", &m_hue, 0.01f, -0.5f, 0.5f))
+            {
+                m_composeMaterial->SetUniformValue("Hue", m_hue);
+            }
+            if (ImGui::DragFloat("Saturation", &m_saturation, 0.01f, 0.0f, 2.0f))
+            {
+                m_composeMaterial->SetUniformValue("Saturation", m_saturation);
+            }
+            if (ImGui::ColorEdit3("Color filter", &m_colorfilter[0]))
+            {
+                m_composeMaterial->SetUniformValue("ColorFilter", m_colorfilter);
+            }
+
         }
     }
 
