@@ -271,7 +271,23 @@ void PostFXSceneViewerApplication::InitializeFramebuffers()
     FramebufferObject::Unbind();
 
     // (todo) 09.3: Add temp textures and frame buffers
+    for (int i = 0; i < 2; i++)
+    {
+        m_temp_textures[i] = std::make_shared<Texture2DObject>();
+        m_temp_textures[i]->Bind();
+        m_temp_textures[i]->SetImage(0, width, height, TextureObject::FormatRGBA, TextureObject::InternalFormat::InternalFormatRGBA16F);
+        m_temp_textures[i]->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_LINEAR);
+        m_temp_textures[i]->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_LINEAR);
+        m_temp_textures[i]->SetParameter(TextureObject::ParameterEnum::WrapS, GL_CLAMP_TO_EDGE);
+        m_temp_textures[i]->SetParameter(TextureObject::ParameterEnum::WrapT, GL_CLAMP_TO_EDGE);
+        Texture2DObject::Unbind();
 
+        m_temp_framebuffers[i] = std::make_shared<FramebufferObject>();
+        m_temp_framebuffers[i]->Bind();
+        m_temp_framebuffers[i]->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_temp_textures[i]);
+        m_temp_framebuffers[i]->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
+        FramebufferObject::Unbind();
+    }
 }
 
 void PostFXSceneViewerApplication::InitializeRenderer()
@@ -304,24 +320,35 @@ void PostFXSceneViewerApplication::InitializeRenderer()
     m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture));
 
     // (todo) 09.3: Create a copy pass from m_sceneTexture to the first temporary texture
-
+    std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_sceneTexture);
+    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_temp_framebuffers[0]));
 
     // (todo) 09.4: Replace the copy pass with a new bloom pass
 
 
     // (todo) 09.3: Add blur passes
+    std::shared_ptr<Material> horizontal_blur = CreatePostFXMaterial("shaders/postfx/blur.frag", m_temp_textures[0]);
+    horizontal_blur->SetUniformValue("Scale", glm::vec2(1.0f / (float) width, 0.0f));
 
+    std::shared_ptr<Material> vertical_blur = CreatePostFXMaterial("shaders/postfx/blur.frag", m_temp_textures[1]);
+    vertical_blur->SetUniformValue("Scale", glm::vec2(0.0f, 1.0f / (float) height));
+
+    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(horizontal_blur, m_temp_framebuffers[1]));
+    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(vertical_blur, m_temp_framebuffers[0]));
 
     // Final pass
     // (todo) 09.1: Replace with a new m_composeMaterial, using a new shader
-    m_composeMaterial = CreatePostFXMaterial("shaders/postfx/compose.frag", m_sceneTexture);
+    m_composeMaterial = CreatePostFXMaterial("shaders/postfx/compose.frag", m_temp_textures[1]);
     m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(m_composeMaterial, m_renderer.GetDefaultFramebuffer()));
 
     // (todo) 09.1: Set exposure uniform default value
-
+    m_composeMaterial->SetUniformValue("Exposure", m_exposure);
 
     // (todo) 09.2: Set uniform default values
-
+    m_composeMaterial->SetUniformValue("Contrast", m_contrast);
+    m_composeMaterial->SetUniformValue("HueShift", m_hue);
+    m_composeMaterial->SetUniformValue("Saturation", m_saturation);
+    m_composeMaterial->SetUniformValue("ColorFilter", m_colorfilter);
 
     // (todo) 09.4: Set the bloom texture uniform
 
