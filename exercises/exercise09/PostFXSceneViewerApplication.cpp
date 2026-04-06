@@ -30,6 +30,9 @@ PostFXSceneViewerApplication::PostFXSceneViewerApplication()
     , m_renderer(GetDevice())
     , m_sceneFramebuffer(std::make_shared<FramebufferObject>())
     , m_exposure(1.0f)
+    , m_bloomRange(glm::vec2(1.0f, 2.0f))
+    , m_bloomIntensity(1.0f)
+    , m_blurPasses(4)
     // (todo) 09.X: Set default value of configuration properties
 
 {
@@ -320,11 +323,12 @@ void PostFXSceneViewerApplication::InitializeRenderer()
     m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture));
 
     // (todo) 09.3: Create a copy pass from m_sceneTexture to the first temporary texture
-    std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_sceneTexture);
-    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_temp_framebuffers[0]));
+    // std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_sceneTexture);
+    // m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_temp_framebuffers[0]));
 
     // (todo) 09.4: Replace the copy pass with a new bloom pass
-
+    m_bloomMaterial = CreatePostFXMaterial("shaders/postfx/bloom.frag", m_sceneTexture);
+    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(m_bloomMaterial, m_temp_framebuffers[0]));
 
     // (todo) 09.3: Add blur passes
     std::shared_ptr<Material> horizontal_blur = CreatePostFXMaterial("shaders/postfx/blur.frag", m_temp_textures[0]);
@@ -333,12 +337,15 @@ void PostFXSceneViewerApplication::InitializeRenderer()
     std::shared_ptr<Material> vertical_blur = CreatePostFXMaterial("shaders/postfx/blur.frag", m_temp_textures[1]);
     vertical_blur->SetUniformValue("Scale", glm::vec2(0.0f, 1.0f / (float) height));
 
-    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(horizontal_blur, m_temp_framebuffers[1]));
-    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(vertical_blur, m_temp_framebuffers[0]));
+    for (int i = 0; i < m_blurPasses; i++)
+    {
+        m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(horizontal_blur, m_temp_framebuffers[1]));
+        m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(vertical_blur, m_temp_framebuffers[0]));
+    }
 
     // Final pass
     // (todo) 09.1: Replace with a new m_composeMaterial, using a new shader
-    m_composeMaterial = CreatePostFXMaterial("shaders/postfx/compose.frag", m_temp_textures[1]);
+    m_composeMaterial = CreatePostFXMaterial("shaders/postfx/compose.frag", m_sceneTexture);
     m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(m_composeMaterial, m_renderer.GetDefaultFramebuffer()));
 
     // (todo) 09.1: Set exposure uniform default value
@@ -351,7 +358,9 @@ void PostFXSceneViewerApplication::InitializeRenderer()
     m_composeMaterial->SetUniformValue("ColorFilter", m_colorfilter);
 
     // (todo) 09.4: Set the bloom texture uniform
-
+    m_bloomMaterial->SetUniformValue("Intensity", m_bloomIntensity);
+    m_bloomMaterial->SetUniformValue("Range", m_bloomRange);
+    m_composeMaterial->SetUniformValue("BloomTexture", m_temp_textures[0]);
 
 }
 
@@ -433,6 +442,14 @@ void PostFXSceneViewerApplication::RenderGUI()
             if (ImGui::ColorEdit3("Color filter", &m_colorfilter[0]))
             {
                 m_composeMaterial->SetUniformValue("ColorFilter", m_colorfilter);
+            }
+            if (ImGui::DragFloat("Intensity", &m_bloomIntensity, 0.01f, 0.0f, 10.0f))
+            {
+                m_bloomMaterial->SetUniformValue("Intensity", m_bloomIntensity);
+            }
+            if (ImGui::SliderFloat2("Range", &m_bloomRange[0], 0.0f, 5.0f))
+            {
+                m_bloomMaterial->SetUniformValue("Range", m_bloomRange);
             }
 
         }

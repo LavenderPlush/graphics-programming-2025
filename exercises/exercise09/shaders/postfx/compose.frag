@@ -12,10 +12,12 @@ out vec4 FragColor;
 
 //Uniforms
 uniform sampler2D SourceTexture;
+uniform sampler2D BloomTexture;
 
 void main()
 {
-	vec4 color = 1.0f - exp(-texture(SourceTexture, TexCoord)*Exposure);
+    vec4 color = texture(SourceTexture, TexCoord) + texture(BloomTexture, TexCoord);
+	color = 1.0f - exp(-color*Exposure);
 
     // Contrast
     color.rgb = (color.rgb - vec3(0.5)) * Contrast + vec3(0.5);
